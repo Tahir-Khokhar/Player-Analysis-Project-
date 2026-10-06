@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation helper for UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['email', 'displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.email is string && data.email.size() <= 254
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500));
+    }
+
+    // Validation helper for PlayerStatRecord
+    function isValidPlayerRecord(data, userId) {
+      return data.keys().hasAll(['userId', 'sport', 'playerName', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'sport', 'playerName', 'team', 'position', 'metrics', 'createdAt'])
+        && data.userId == userId
+        && data.sport in ['basketball', 'soccer', 'cricket', 'baseball']
+        && data.playerName is string && data.playerName.size() > 0 && data.playerName.size() <= 120
+        && (!('team' in data) || (data.team is string && data.team.size() <= 100))
+        && (!('position' in data) || (data.position is string && data.position.size() <= 50));
+    }
+
+    // Validation helper for TrainedExperiment
+    function isValidTrainedExperiment(data, userId) {
+      return data.keys().hasAll(['userId', 'sport', 'algorithm', 'targetName', 'taskType', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'sport', 'algorithm', 'targetName', 'taskType', 'metrics', 'createdAt'])
+        && data.userId == userId
+        && data.sport in ['basketball', 'soccer', 'cricket', 'baseball']
+        && data.algorithm is string && data.algorithm.size() <= 60
+        && data.targetName is string && data.targetName.size() <= 60
+        && data.taskType in ['regression', 'classification'];
+    }
+
+    // User Profile Document
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+
+      allow delete: if isOwner(userId);
+
+      // Player Records Subcollection
+      match /player_records/{recordId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidId(recordId)
+          && isValidPlayerRecord(incoming(), userId)
+          && incoming().createdAt == request.time;
+
+        allow update: if isOwner(userId)
+          && isValidId(recordId)
+          && isValidPlayerRecord(incoming(), userId)
+          && incoming().createdAt == existing().createdAt;
+
+        allow delete: if isOwner(userId);
+      }
+
+      // Trained Experiments Subcollection
+      match /trained_experiments/{experimentId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidId(experimentId)
+          && isValidTrainedExperiment(incoming(), userId)
+          && incoming().createdAt == request.time;
+
+        allow update: if isOwner(userId)
+          && isValidId(experimentId)
+          && isValidTrainedExperiment(incoming(), userId)
+          && incoming().createdAt == existing().createdAt;
+
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

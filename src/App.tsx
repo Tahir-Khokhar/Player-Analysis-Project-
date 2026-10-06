@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
+import { PythonStudio } from './components/PythonStudio';
 import { TrainingStudio } from './components/TrainingStudio';
 import { PredictionSandbox } from './components/PredictionSandbox';
 import { DatasetExplorer } from './components/DatasetExplorer';
@@ -10,7 +11,7 @@ import { INITIAL_DATASETS, SPORT_CONFIGS } from './data/sports-datasets';
 import { trainSupervisedModel } from './ml/supervised-engine';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('training');
+  const [activeTab, setActiveTab] = useState<string>('python');
   const [currentSport, setCurrentSport] = useState<SportType>('basketball');
   const [datasets, setDatasets] = useState<Record<SportType, PlayerRecord[]>>(INITIAL_DATASETS);
   
@@ -26,7 +27,7 @@ export default function App() {
     features: Record<string, number>;
   } | null>(null);
 
-  // Auto-train initial model on load so the user lands on a fully populated, production-grade diagnostic view
+  // Auto-train initial model on load so the user lands on a fully populated diagnostic view
   useEffect(() => {
     const defaultFeatures = SPORT_CONFIGS[currentSport].features.slice(0, 5).map(f => f.id);
     const { result, predictSingle } = trainSupervisedModel(
@@ -83,6 +84,10 @@ export default function App() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
+        {activeTab === 'python' && (
+          <PythonStudio />
+        )}
+
         {activeTab === 'training' && (
           <TrainingStudio
             currentSport={currentSport}
@@ -130,15 +135,17 @@ export default function App() {
 
       <footer className="border-t border-slate-900 bg-slate-950/60 py-4 px-4 text-center text-xs text-slate-500 font-sans">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>SportPulse ML · Django REST Framework & Scikit-Learn Sports Analytics Architecture</span>
+          <span>SportPulse ML · Python 3.11 · Scikit-Learn · Django REST Framework</span>
           <div className="flex items-center gap-3 text-slate-400">
+            <span>Python 3.11</span>
+            <span aria-hidden="true">·</span>
             <span>Django 5.0</span>
             <span aria-hidden="true">·</span>
             <span>DRF 3.15</span>
             <span aria-hidden="true">·</span>
             <span>Scikit-Learn 1.4</span>
             <span aria-hidden="true">·</span>
-            <span>OpenAPI 3.0</span>
+            <span>Firebase Auth & Firestore</span>
           </div>
         </div>
       </footer>

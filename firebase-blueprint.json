@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with display metadata and timestamps",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 254 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt", "updatedAt"]
+    },
+    "PlayerStatRecord": {
+      "title": "PlayerStatRecord",
+      "description": "Sports player stats and telemetry saved by analyst",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "sport": { "type": "string", "enum": ["basketball", "soccer", "cricket", "baseball"], "maxLength": 20 },
+        "playerName": { "type": "string", "maxLength": 120 },
+        "team": { "type": "string", "maxLength": 100 },
+        "position": { "type": "string", "maxLength": 50 },
+        "metrics": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "sport", "playerName", "createdAt"]
+    },
+    "TrainedExperiment": {
+      "title": "TrainedExperiment",
+      "description": "Supervised ML training run result and evaluation metrics",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "sport": { "type": "string", "enum": ["basketball", "soccer", "cricket", "baseball"], "maxLength": 20 },
+        "algorithm": { "type": "string", "maxLength": 60 },
+        "targetName": { "type": "string", "maxLength": 60 },
+        "taskType": { "type": "string", "enum": ["regression", "classification"], "maxLength": 20 },
+        "metrics": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "sport", "algorithm", "targetName", "taskType", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile document owned by authenticated user"
+    },
+    "/users/{userId}/player_records/{recordId}": {
+      "schema": { "$ref": "#/entities/PlayerStatRecord" },
+      "description": "Player telemetry records stored under user subcollection"
+    },
+    "/users/{userId}/trained_experiments/{experimentId}": {
+      "schema": { "$ref": "#/entities/TrainedExperiment" },
+      "description": "Trained supervised learning runs and metrics for the user"
+    }
+  }
+}
